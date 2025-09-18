@@ -28,6 +28,7 @@ cat >> .gitignore <<'EOF'
 *.DS_Store
 .bolt/
 
+!.envrc
 
 # Devenv
 .devenv*
