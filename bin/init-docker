@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -e
+
+lang="$1"
+
+if [ -z "$lang" ]; then
+  echo "Usage: $0 <python|node>"
+  exit 1
+fi
+
+# Check if Dockerfile already exists
+if [ -f "./Dockerfile" ]; then
+  echo "⚠️  Dockerfile already exists in the current directory. Aborting."
+  exit 1
+fi
+
+# Initialize based on language
+case "$lang" in
+  python)
+    version=$(python -V | awk '{split($2,a,"."); print a[1]"."a[2]}')
+    cat >Dockerfile <<EOF
+# Simple Python Dockerfile
+FROM python:${version}-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["python", "main.py"]
+EOF
+    ;;
+  node)
+    version=$(node --version | sed 's/^v//' | cut -d. -f1)
+    cat >Dockerfile <<EOF
+# Simple Node.js Dockerfile
+FROM node:${version}-slim
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+CMD ["node", "index.js"]
+EOF
+    ;;
+  *)
+    echo "Unsupported language: $lang"
+    echo "Supported: python, node"
+    exit 1
+    ;;
+esac
+
+echo "✅ Dockerfile initialized for $lang"

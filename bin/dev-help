@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+cowsay -f actually "HELLO $1"

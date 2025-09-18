@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -e
+
+tool="$1"
+
+# pick the right version command depending on the tool
+case "$tool" in
+  python)
+    include_tool=false
+    version_cmd="python --version"
+    ;;
+  node)
+    include_tool=true
+    version_cmd="node --version"
+    ;;
+  helm)
+    include_tool=true
+    version_cmd="helm version --short"
+    ;;
+  terraform)
+    include_tool=false
+    version_cmd="terraform -version | head -n 1"
+    ;;
+  *)
+    echo "Unknown tool: $tool"
+    exit 1
+    ;;
+esac
+
+# run the command and capture the version string
+version=$(eval "$version_cmd" 2>&1)
+display_version=$($include_tool && echo "${tool^} $version" || echo "$version")
+
+# ANSI colours
+CYAN='\033[1;36m'
+RESET='\033[0m'
+
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "🚀 Development environment loaded!"
+echo ""
+echo -e "📦 ${display_version}"
+echo ""
+echo -e "💡 Type 'help' to see available commands"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
