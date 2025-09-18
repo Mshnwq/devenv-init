@@ -1,24 +1,34 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
-# Ensure we got an argument
-if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 {up|down}" >&2
+# Default compose file
+COMPOSE_FILE="docker-compose.yml"
+
+# Parse optional arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --file | -f)
+      COMPOSE_FILE="$2"
+      shift 2
+      ;;
+    up | down)
+      action="$1"
+      shift
+      ;;
+    *)
+      echo "❌ Unknown argument: $1" >&2
+      echo "Usage: $0 [--file PATH] {up|down}" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Ensure action is set
+if [[ -z "${action:-}" ]]; then
+  echo "❌ You must specify 'up' or 'down'" >&2
+  echo "Usage: $0 [--file PATH] {up|down}" >&2
   exit 1
 fi
-
-# Validate argument
-case "$1" in
-  up | down)
-    action="$1"
-    ;;
-  *)
-    echo "❌ Invalid argument: $1" >&2
-    echo "Usage: $0 {up|down}" >&2
-    exit 1
-    ;;
-esac
 
 # Pick docker-compose or podman-compose
 if command -v docker &>/dev/null; then
@@ -30,5 +40,5 @@ else
   exit 1
 fi
 
-echo "▶ Using $compose_cmd ..."
-"$compose_cmd" -f ./.utils/build/compose.yaml $1
+echo "▶ Using $compose_cmd with compose file: $COMPOSE_FILE ..."
+"$compose_cmd" -f "$COMPOSE_FILE" "$action"
