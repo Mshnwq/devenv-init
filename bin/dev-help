@@ -26,7 +26,7 @@ END {
 
   # header
   fmt = "│ %-" (w1-2) "s │ %-" (w2-2) "s │\n"
-  printf fmt, "cmd", "description"
+  printf fmt, " cmd", "description"
 
   # header separator
   printf "├"; for (i = 0; i < w1; ++i) printf "─"; printf "┼"; for (i = 0; i < w2; ++i) printf "─"; printf "┤\n"

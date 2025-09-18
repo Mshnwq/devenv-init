@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Default values
+IMAGE_NAME="myapp:local"
+DOCKERFILE="./Dockerfile"
+
+usage() {
+  cat <<EOF
+Usage: $0 [options]
+
+Options:
+  --image-name NAME   Name:tag of the container image (default: $IMAGE_NAME)
+  --dockerfile FILE   Path to Dockerfile (default: $DOCKERFILE)
+  -h, --help          Show this help message and exit
+EOF
+  exit 0
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --image-name)
+      IMAGE_NAME="${2:-}"
+      if [[ -z "$IMAGE_NAME" ]]; then
+        echo "❌ Missing value for --image-name" >&2
+        exit 1
+      fi
+      shift 2
+      ;;
+    --dockerfile)
+      DOCKERFILE="${2:-}"
+      if [[ -z "$DOCKERFILE" ]]; then
+        echo "❌ Missing value for --dockerfile" >&2
+        exit 1
+      fi
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      echo "❌ Unknown option: $1" >&2
+      usage
+      ;;
+  esac
+done
+
+# Determine container engine
+if command -v docker &>/dev/null; then
+  container_cmd="docker"
+elif command -v podman &>/dev/null; then
+  container_cmd="podman"
+else
+  echo "❌ Neither Docker nor Podman is installed!" >&2
+  exit 1
+fi
+
+# Build the container image
+echo "▶ Building container image with $container_cmd ..."
+"$container_cmd" build -t "$IMAGE_NAME" -f "$DOCKERFILE" .
+
+echo "✅ Container image '$IMAGE_NAME' built successfully using $container_cmd and Dockerfile '$DOCKERFILE'."
