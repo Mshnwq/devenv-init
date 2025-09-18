@@ -19,9 +19,15 @@
           # Wrap each script so dependecies are in PATH
           for f in $out/bin/*; do
             wrapProgram "$f" \
-              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.cowsay ]}
+              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.cowsay pkgs.gibo ]}
           done
         '';
+        # TODO:
+        # packages.${system}.dclint = pkgs.stdenv.mkDerivation {
+        #   pname = "dclint";
+        #   version = "1.0";
+        #   src = self;
+        # };
       };
     };
 }
