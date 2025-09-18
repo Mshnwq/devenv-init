@@ -1,3 +1,46 @@
-#!/usr/bin/env bash
+#!/usr/bin/env awk -f
 
-cowsay -f actually "HELLO $1"
+# THOUGHT FOR 1m 15s
+# draw-table: reads tab-separated lines and prints a Unicode box table
+BEGIN { FS="\t"; OFS=""; }
+{
+  if (NF == 0) next
+  cmd  = $1
+  desc = ($2 == "" ? "" : $2)
+  for (i = 3; i <= NF; ++i) desc = desc "\t" $i
+
+  if (length(cmd)  > max1) max1  = length(cmd)
+  if (length(desc) > max2) max2 = length(desc)
+  rows[++r] = cmd "\t" desc
+}
+END {
+  if (r == 0) {
+    print "No rows found."
+    exit
+  }
+  w1 = max1 + 2
+  w2 = max2 + 2
+
+  # top border
+  printf "╭"; for (i = 0; i < w1; ++i) printf "─"; printf "┬"; for (i = 0; i < w2; ++i) printf "─"; printf "╮\n"
+
+  # header
+  fmt = "│ %-" (w1-2) "s │ %-" (w2-2) "s │\n"
+  printf fmt, "cmd", "description"
+
+  # header separator
+  printf "├"; for (i = 0; i < w1; ++i) printf "─"; printf "┼"; for (i = 0; i < w2; ++i) printf "─"; printf "┤\n"
+
+  # rows
+  for (i = 1; i <= r; ++i) {
+    split(rows[i], a, "\t")
+    printf fmt, a[1], a[2]
+  }
+
+  # bottom border
+  printf "╰"; for (i = 0; i < w1; ++i) printf "─"; printf "┴"; for (i = 0; i < w2; ++i) printf "─"; printf "╯\n"
+}
+
+#/usr/bin/env bash
+
+#cowsay -f actually "HELLO $1"
