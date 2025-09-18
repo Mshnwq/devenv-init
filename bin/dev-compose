@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Ensure we got an argument
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 {up|down}" >&2
+  exit 1
+fi
+
+# Validate argument
+case "$1" in
+  up | down)
+    action="$1"
+    ;;
+  *)
+    echo "❌ Invalid argument: $1" >&2
+    echo "Usage: $0 {up|down}" >&2
+    exit 1
+    ;;
+esac
+
+# Pick docker-compose or podman-compose
+if command -v docker &>/dev/null; then
+  compose_cmd="docker-compose"
+elif command -v podman &>/dev/null; then
+  compose_cmd="podman-compose"
+else
+  echo "❌ Neither docker nor podman is installed!" >&2
+  exit 1
+fi
+
+echo "▶ Using $compose_cmd ..."
+"$compose_cmd" -f ./.utils/build/compose.yaml $1
