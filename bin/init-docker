@@ -80,7 +80,7 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --omit=dev,optional
+RUN npm ci --omit=dev
 
 COPY . .
 
@@ -96,7 +96,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["nginx", "-g", "daemon off;"]
 EOF
     else
       cat >Dockerfile <<EOF
