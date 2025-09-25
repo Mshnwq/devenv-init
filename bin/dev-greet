@@ -21,6 +21,10 @@ case "$tool" in
     include_tool=false
     version_cmd="terraform -version | head -n 1"
     ;;
+  opentofu)
+    include_tool=false
+    version_cmd="tofu -version | head -n 1"
+    ;;
   *)
     echo "Unknown tool: $tool"
     exit 1
