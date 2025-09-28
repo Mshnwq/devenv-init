@@ -19,7 +19,7 @@
           # Wrap each script so dependecies are in PATH
           for f in $out/bin/*; do
             wrapProgram "$f" \
-              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.cowsay pkgs.gibo ]}
+              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.cowsay pkgs.gibo pkgs.bat pkgs.jq pkgs.curl]}
           done
         '';
         # TODO:

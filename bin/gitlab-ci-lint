@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# https://docs.gitlab.com/api/lint/
+
+# Defaults
+CI_FILES=(".gitlab-ci.yml")
+SHOW_YAML=false
+COLOR=true
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --token) TOKEN="$2"; shift 2 ;;
+        --project_id) PROJECT_ID="$2"; shift 2 ;;
+        --files)
+            shift
+            FILES=()
+            while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
+                FILES+=( $1 )
+                shift
+            done
+            CI_FILES=("${FILES[@]}")
+            ;;
+        --print) SHOW_YAML=true; shift ;;
+        --no-color) COLOR=false; shift ;;
+        *) echo "Unknown argument: $1"; exit 1 ;;
+    esac
+done
+
+# Colors
+RED=$(tput setaf 1)
+YELLOW=$(tput setaf 3)
+GREEN=$(tput setaf 2)
+RESET=$(tput sgr0)
+
+# Expand globs and concatenate all YAML files
+ALL_YAML=""
+for f in "${CI_FILES[@]}"; do
+    for g in $f; do
+        if [[ -f "$g" ]]; then
+            ALL_YAML+="$(cat "$g")"$'\n'
+        else
+            echo -e "${YELLOW}Warning: File '$g' not found, skipping.${RESET}"
+        fi
+    done
+done
+
+if [[ -z "$ALL_YAML" ]]; then
+    echo -e "${RED}No valid CI files found. Exiting.${RESET}"
+    exit 1
+fi
+
+# Query GitLab CI Lint API with all files merged
+RESPONSE=$(jq --null-input --arg yaml "$ALL_YAML" '{content:$yaml}' \
+    | curl -s --header "PRIVATE-TOKEN: $TOKEN" \
+           --url "https://gitlab.com/api/v4/projects/$PROJECT_ID/ci/lint?include_merged_yaml=true" \
+           --header 'Content-Type: application/json' \
+           --data @-)
+
+VALID=$(echo "$RESPONSE" | jq -r '.valid')
+ERRORS=$(echo "$RESPONSE" | jq -r '.errors[]?')
+WARNINGS=$(echo "$RESPONSE" | jq -r '.warnings[]?')
+MERGED_YAML=$(echo "$RESPONSE" | jq -r '.merged_yaml')
+
+# Print errors/warnings
+if [[ "$ERRORS" || "$WARNINGS" ]]; then
+    [[ "$ERRORS" ]] && echo -e "${RED}Errors:${RESET}" && echo "$ERRORS" | sed 's/^/- /'
+    [[ "$WARNINGS" ]] && echo -e "${YELLOW}Warnings:${RESET}" && echo "$WARNINGS" | sed 's/^/- /'
+fi
+
+# Print merged YAML if valid and requested
+if [[ "$VALID" == "true" ]]; then
+    echo -e "\n${GREEN}✅ CI Lint Valid${RESET}"
+    if $SHOW_YAML; then
+        echo -e "Merged YAML:"
+        if $COLOR && command -v bat &>/dev/null; then
+            echo "$MERGED_YAML" | bat --language=yaml --paging=never --theme ansi
+        else
+            echo "$MERGED_YAML"
+        fi
+    fi
+else
+    echo -e "${RED}❌ CI Lint Invalid${RESET}"
+fi
