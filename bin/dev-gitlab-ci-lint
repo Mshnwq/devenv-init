@@ -11,7 +11,7 @@ COLOR=true
 while [[ $# -gt 0 ]]; do
     case $1 in
         --token) TOKEN="$2"; shift 2 ;;
-        --project_id) PROJECT_ID="$2"; shift 2 ;;
+        --project-id) PROJECT_ID="$2"; shift 2 ;;
         --files)
             shift
             FILES=()
