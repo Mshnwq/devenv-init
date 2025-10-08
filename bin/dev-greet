@@ -13,6 +13,10 @@ case "$tool" in
     include_tool=true
     version_cmd="node --version"
     ;;
+  lua)
+    include_tool=true
+    version_cmd="lua -v 2>&1 | awk '{print \$2}'"
+    ;;
   helm)
     include_tool=true
     version_cmd="helm version --short"
