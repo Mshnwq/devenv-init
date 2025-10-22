@@ -9,6 +9,10 @@ case "$tool" in
     include_tool=false
     version_cmd="python --version"
     ;;
+  go)
+    include_tool=false
+    version_cmd="go version"
+    ;;
   node)
     include_tool=true
     version_cmd="node --version"
