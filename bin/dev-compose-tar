@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Default compose file
+COMPOSE_FILE="docker-compose.yml"
+APP_NAME=""
+
+# Parse optional arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --file | -f)
+      COMPOSE_FILE="$2"
+      shift 2
+      ;;
+    *)
+      # Treat first non-option argument as APP_NAME
+      if [[ -z "$APP_NAME" ]]; then
+        APP_NAME="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Pick docker-compose or podman-compose
+if command -v docker &>/dev/null; then
+  compose_cmd="docker-compose"
+  _cmd="docker"
+elif command -v podman &>/dev/null; then
+  compose_cmd="podman-compose"
+  _cmd="podman"
+else
+  echo "❌ Neither docker nor podman is installed!" >&2
+  exit 1
+fi
+
+# Build and capture output while displaying it in real-time
+build_output_file=$(mktemp)
+trap "rm -f $build_output_file" EXIT
+
+"$compose_cmd" -f "$COMPOSE_FILE" build "$APP_NAME" 2>&1 | tee "$build_output_file"
+
+# Read the captured output
+build_output=$(cat "$build_output_file")
+
+# Extract image name from "Successfully tagged" line
+image_name=$(echo "$build_output" | grep -oP "Successfully tagged \K.*" | head -n 1)
+
+if [[ -z "$image_name" ]]; then
+  echo "❌ Could not extract image name from build output" >&2
+  exit 1
+fi
+
+echo "▶ Image name: $image_name"
+
+# If APP_NAME is empty, derive it from image_name
+if [[ -z "$APP_NAME" ]]; then
+  # Extract the image name without registry/tags (e.g., "localhost/myapp:latest" -> "myapp")
+  APP_NAME=$(echo "$image_name" | sed 's|.*/||' | sed 's|:.*||')
+  echo "▶ Using derived name: $APP_NAME"
+fi
+echo "▶ Saving image to tarball ..."
+
+# Create .docker directory and save image
+mkdir -p .docker
+$_cmd save "$image_name" > ".docker/${APP_NAME}.tar"
+
+echo "✅ Image saved to .docker/${APP_NAME}.tar"
