@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -e
+
+mkdir -p output
+
+# First argument decides what to generate:
+# - "all": generate for all values-*.yaml
+# - otherwise: generate for that one (e.g. "test" => values-test.yaml)
+target="$1"
+
+if [ -z "$target" ]; then
+  echo "Usage: generate <all|name>"
+  exit 1
+fi
+
+# grab chart name from Chart.yaml (first 'name:' line)
+chart_name=$(awk '/^name:/ {print $2; exit}' Chart.yaml)
+
+# small helper: run helm template for a given env/file
+render_chart() {
+  local env="$1"
+  local file="$2"
+
+  echo "Generating for $env..."
+  helm template "$chart_name" . -n "$env" \
+    --values "$file" >"output/$env.yaml"
+  bat --theme=base16 --show-all \
+    --paging=never "output/$env.yaml"
+}
+
+if [ "$target" = "all" ]; then
+  for file in values-*.yaml; do
+    val_env=$(echo "$file" | awk -F'values-|.yaml' '{print $2}')
+    render_chart "$val_env" "$file"
+  done
+else
+  file="values-$target.yaml"
+  if [ ! -f "$file" ]; then
+    echo "File $file not found"
+    exit 1
+  fi
+  render_chart "$target" "$file"
+fi

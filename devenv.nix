@@ -5,7 +5,11 @@
   dotenv.enable = true;
   dotenv.disableHint = true;
   git-hooks.hooks = {
-    nixfmt-rfc-style.enable = true;
-    nixfmt-rfc-style.settings.width = 80;
+    nixfmt-rfc-style = {
+      enable = true;
+      settings = {
+        width = 80;
+      };
+    };
   };
 }

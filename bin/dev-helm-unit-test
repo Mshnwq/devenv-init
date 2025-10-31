@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -e
+
+TEST_DIR=./unittests
+SNAPSHOT_DIR=$TEST_DIR/__snapshot__
+
+# Parse args
+PRINT_TEST=0
+TARGET=""
+
+for arg in "$@"; do
+  case "$arg" in
+  --print) PRINT_TEST=1 ;;
+  *) TARGET="$arg" ;;
+  esac
+done
+
+# Default: run all tests
+tests=$(find "$TEST_DIR" -name "*.yaml" | xargs -n1 basename | sed 's/\.yaml$//')
+run_test() {
+  local testname="$1"
+
+  find "$SNAPSHOT_DIR" -name "$testname.yaml.snap" -delete
+  helm unittest --color -f "$TEST_DIR/$testname.yaml" .
+
+  if [ "$PRINT_TEST" = "1" ]; then
+    bat --theme=base16 --show-all \
+      --paging=never "$SNAPSHOT_DIR/$testname.yaml.snap"
+  fi
+}
+
+if [ "$TARGET" = "all" ]; then
+  for t in $tests; do
+    run_test "$t"
+  done
+else
+  if [ ! -f "$TEST_DIR/$TARGET.yaml" ]; then
+    echo "Error: test '$TARGET' does not exist in $TEST_DIR"
+    exit 1
+  fi
+  run_test "$1"
+fi
