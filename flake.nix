@@ -12,31 +12,50 @@
       tag = "1.18.3";
     in
     {
-      packages.${system}.default = pkgs.stdenv.mkDerivation {
-        pname = "dev-init-scripts";
-        version = "1.0";
-        src = self;
-        nativeBuildInputs = [ pkgs.makeWrapper ];
-        installPhase = ''
-          mkdir -p $out/bin
-          for f in bin/*; do
-            cp "$f" $out/bin/$(basename "$f")
-            chmod +x $out/bin/$(basename "$f")
-          done
-          # Wrap each script so dependecies are in PATH
-          for f in $out/bin/*; do
-            wrapProgram "$f" \
-              --prefix PATH : ${
-                pkgs.lib.makeBinPath [
-                  pkgs.cowsay
-                  pkgs.gibo
-                  pkgs.bat
-                  pkgs.jq
-                  pkgs.curl
-                ]
-              }
-          done
-        '';
+      packages.${system} = {
+        default = pkgs.stdenv.mkDerivation {
+          pname = "dev-init-scripts";
+          version = "1.0";
+          src = self;
+          nativeBuildInputs = [ pkgs.makeWrapper ];
+          installPhase = ''
+            mkdir -p $out/bin
+            for f in bin/*; do
+              cp "$f" $out/bin/$(basename "$f")
+              chmod +x $out/bin/$(basename "$f")
+            done
+            # Wrap each script so dependecies are in PATH
+            for f in $out/bin/*; do
+              wrapProgram "$f" \
+                --prefix PATH : ${
+                  pkgs.lib.makeBinPath [
+                    pkgs.cowsay
+                    pkgs.gibo
+                    pkgs.bat
+                    pkgs.jq
+                    pkgs.curl
+                  ]
+                }
+            done
+          '';
+        };
+
+        # minio-stu = pkgs.symlinkJoin {
+        #   name = "minio-stu";
+        #   paths = with pkgs; [
+        #     minio-client
+        #     stu
+        #   ];
+        #   buildInputs = [ pkgs.makeWrapper ];
+        #   postBuild = ''
+        #     for bin in ${pkgs.minio-client}/bin/* ${pkgs.stu}/bin/*; do
+        #       if [ -f "$bin" ]; then
+        #         wrapProgram "$out/bin/$(basename "$bin")" \
+        #           --prefix PATH : $out/bin
+        #       fi
+        #     done
+        #   '';
+        # };
       };
 
       apps.${system}.scout = {

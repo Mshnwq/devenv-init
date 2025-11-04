@@ -1,0 +1,58 @@
+# Ensure directories exist
+mkdir -p "$DEVENV_STATE"/{.aws,.mc,.stu}
+
+# .mc/config.json
+if [[ ! -f "$DEVENV_STATE/.mc/config.json" ]]; then
+  cat >"$DEVENV_STATE/.mc/config.json" <<EOF
+{
+ "version": "10",
+ "aliases": {
+   "local": {
+     "url": "${S3_URL}",
+     "accessKey": "${S3_ACCESS_KEY}",
+     "secretKey": "${S3_SECRET_KEY}",
+     "api": "s3v4",
+     "path": "auto"
+   }
+ }
+}
+EOF
+fi
+
+export MC_CONFIG_DIR="$DEVENV_STATE/.mc"
+
+# .aws/config
+if [[ ! -f "$DEVENV_STATE/.aws/config" ]]; then
+  cat >"$DEVENV_STATE/.aws/config" <<EOF
+[default]
+region = "${S3_REGION}"
+endpoint_url = "${S3_URL}"
+output = json
+
+s3 =
+ signature_version = s3v4
+EOF
+fi
+
+export AWS_CONFIG_FILE="$XDG_CONFIG_HOME/.aws/config"
+
+# .aws/credentials
+if [[ ! -f "$DEVENV_STATE/.aws/credentials" ]]; then
+  cat >"$DEVENV_STATE/.aws/credentials" <<EOF
+[default]
+aws_access_key_id = ${S3_ACCESS_KEY}
+aws_secret_access_key = ${S3_SECRET_KEY}
+EOF
+fi
+
+export AWS_SHARED_CREDENTIALS_FILE="$DEVENV_STATE/.aws/credentials"
+
+# .stu/config.toml
+if [[ ! -f "$DEVENV_STATE/.stu/config.toml" ]]; then
+  cat >"$DEVENV_STATE/.stu/config.toml" <<EOF
+default_region = "${S3_REGION}"
+download_dir = "$DEVENV_STATE/.stu/download"
+EOF
+fi
+
+export STU_ROOT_DIR="$DEVENV_STATE/.stu"
