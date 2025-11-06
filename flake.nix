@@ -93,3 +93,54 @@
       };
     };
 }
+
+#     scripts.ensure-docker-tar = {
+#     scripts.ensure-docker-tar = {
+#   exec = ''
+#     if [[ ! -f ".docker/$APP_NAME.tar" ]]; then
+#       echo "▶ Docker tar not found, building..."
+#       dev-compose-tar $APP_NAME
+#     else
+#       echo "✓ Docker tar exists: .docker/$APP_NAME.tar"
+#     fi
+#   '';
+# };
+# scripts.docker-scout = {
+#   exec = ''
+#     ensure-docker-tar
+#     if [[ -z "''${DOCKER_SCOUT_HUB_USER:-}" ]]; then
+#       echo "❌ DOCKER_SCOUT_HUB_USER environment variable is not set" >&2
+#       echo "Please set it before running docker scout commands" >&2
+#       exit 1
+#     fi
+#     if [[ -z "''${DOCKER_SCOUT_HUB_PASSWORD:-}" ]]; then
+#       echo "❌ DOCKER_SCOUT_HUB_PASSWORD environment variable is not set" >&2
+#       echo "Please set it before running docker scout commands" >&2
+#       exit 1
+#     fi
+#     nix run github:mshnwq/devenv-init#scout --no-write-lock-file -- scout "$@"
+#   '';
+# };
+# scripts.docker-scout-cves = {
+#   description = "Check docker image CVES";
+#   exec = ''
+#     echo "▶ Scanning for CVEs..."
+#     docker-scout cves "archive://.docker/$APP_NAME.tar" \
+#       # --format markdown --output "$APP_NAME.cves.md"
+#       # --format sarif --output "$APP_NAME.cves.sarif"
+#       # --format gitlab --output "$APP_NAME.cves.gitlab"
+#       # --format spdx --output "$APP_NAME.cves.spdx"
+#     echo "✓ CVE report saved to $APP_NAME.cves"
+#   '';
+# };
+# scripts.docker-scout-sbom = {
+#   description = "Generate Software Bill of Material";
+#   exec = ''
+#     echo "▶ Generating SBOM..."
+#     docker-scout sbom "archive://.docker/$APP_NAME.tar" \
+#       --format list --output "$APP_NAME.sbom.list"
+#       # --format json --output "$APP_NAME.sbom.json"
+#       # --format spdx --output "$APP_NAME.sbom.spdx"
+#     echo "✓ SBOM saved to $APP_NAME.sbom"
+#   '';
+# };
