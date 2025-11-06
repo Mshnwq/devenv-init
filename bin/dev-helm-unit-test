@@ -1,22 +1,43 @@
 #!/usr/bin/env bash
 set -e
 
-TEST_DIR=./unittests
-SNAPSHOT_DIR=$TEST_DIR/__snapshot__
-
 # Parse args
 PRINT_TEST=0
 TARGET=""
+CHART=""
 
-for arg in "$@"; do
-  case "$arg" in
-  --print) PRINT_TEST=1 ;;
-  *) TARGET="$arg" ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --print)
+    PRINT_TEST=1
+    shift
+    ;;
+  --chart)
+    CHART="$2"
+    shift 2
+    ;;
+  *)
+    TARGET="$1"
+    shift
+    ;;
   esac
 done
 
+# Change directory if --chart is provided
+if [ -n "$CHART" ]; then
+  if [ ! -d "charts/$CHART" ]; then
+    echo "Error: chart 'charts/$CHART' not found"
+    exit 1
+  fi
+  cd "charts/$CHART"
+fi
+
+TEST_DIR=./unittests
+SNAPSHOT_DIR=$TEST_DIR/__snapshot__
+
 # Default: run all tests
 tests=$(find "$TEST_DIR" -name "*.yaml" | xargs -n1 basename | sed 's/\.yaml$//')
+
 run_test() {
   local testname="$1"
 
@@ -38,5 +59,5 @@ else
     echo "Error: test '$TARGET' does not exist in $TEST_DIR"
     exit 1
   fi
-  run_test "$1"
+  run_test "$TARGET"
 fi
