@@ -1,3 +1,4 @@
+# flake.nix
 {
   description = "DevEnv init scripts";
   inputs = {
@@ -9,7 +10,34 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
-      tag = "1.18.3";
+
+      glimNew = pkgs.rustPlatform.buildRustPackage {
+        pname = "glim";
+        version = "git-f141972";
+        src = pkgs.fetchFromGitHub {
+          owner = "mshnwq";
+          repo = "glim";
+          rev = "f1419721699e400f9ca035cfd5b4fb72c58c6410";
+          hash = "sha256-vNJn2Xf8KBZMDD3hK0SXLQ9+84hDid2+NHNviU3oCGs=";
+        };
+        cargoHash = "sha256-9DxUgv10cSsTlwqTJWtNxcd/hbS6pGZ+XCPjL1wbCh8=";
+        nativeBuildInputs = [ pkgs.pkg-config ];
+        buildInputs = [ pkgs.openssl ];
+      };
+
+      glimOld = pkgs.rustPlatform.buildRustPackage {
+        pname = "glim";
+        version = "git-cd53dae";
+        src = pkgs.fetchFromGitHub {
+          owner = "junkdog";
+          repo = "glim";
+          rev = "cd53dae9985c16c49172ad0583fc2e4e2fe223dc";
+          hash = "sha256-yAymON+o2slcyCpEq5prkffUelW5jV3I9JSJuQc6+jc=";
+        };
+        cargoHash = "sha256-9DxUgv10cSsTlwqTJWtNxcd/hbS6pGZ+XCPjL1wbCh8=";
+        nativeBuildInputs = [ pkgs.pkg-config ];
+        buildInputs = [ pkgs.openssl ];
+      };
     in
     {
       packages.${system} = {
@@ -40,57 +68,72 @@
           '';
         };
 
-        # minio-stu = pkgs.symlinkJoin {
-        #   name = "minio-stu";
-        #   paths = with pkgs; [
-        #     minio-client
-        #     stu
-        #   ];
-        #   buildInputs = [ pkgs.makeWrapper ];
-        #   postBuild = ''
-        #     for bin in ${pkgs.minio-client}/bin/* ${pkgs.stu}/bin/*; do
-        #       if [ -f "$bin" ]; then
-        #         wrapProgram "$out/bin/$(basename "$bin")" \
-        #           --prefix PATH : $out/bin
-        #       fi
-        #     done
-        #   '';
-        # };
+        glim = pkgs.writeShellApplication {
+          name = "glim";
+          text = ''
+            if [ -f .env ]; then
+              export "$(grep -v '^#' .env | grep -E 'GLIM_TOKEN|GLIM_SEARCH_FILTER' | xargs)"
+            fi
+            base_config="${pkgs.writeText "glim.toml" ''
+              gitlab_url = "https://gitlab.com/api/v4"
+              gitlab_token = ""
+              search_filter = ""
+              animations = true
+            ''}"
+            config="$base_config"
+            if [ -n "$GLIM_TOKEN" ] || [ -n "$GLIM_FILTER" ]; then
+              config=$(mktemp)
+              cp "$base_config" "$config"
+              if [ -n "$GLIM_TOKEN" ]; then
+                sed -i "s|gitlab_token = \"\"|gitlab_token = \"$GLIM_TOKEN\"|" "$config"
+              fi
+              if [ -n "$GLIM_FILTER" ]; then
+                sed -i "s|search_filter = \"\"|search_filter = \"$GLIM_FILTER\"|" "$config"
+              fi
+            fi
+            exec ${glimOld}/bin/glim --config "$config" "$@"
+          '';
+        };
+
       };
 
-      apps.${system}.scout = {
-        type = "app";
-        program = toString (
-          pkgs.writeShellScript "docker-scout-ephemeral" ''
-            set -euo pipefail
-            PLUGIN_DIR="$PWD/.docker/scout"
-            CONFIG_FILE="$PWD/.docker/config.json"
-            mkdir -p "$PLUGIN_DIR"
-            TAR="$PWD/docker-scout-${tag}.tar.gz"
-            BIN="$PLUGIN_DIR/docker-scout"
-            if [ ! -x "$BIN" ]; then
-              URL="https://github.com/docker/scout-cli/releases/download/v${tag}/docker-scout_${tag}_linux_amd64.tar.gz"
-              echo $URL
-              ${pkgs.curl}/bin/curl -L "$URL" -o "$TAR"
-              mkdir -p "$(dirname "$BIN")"
-              ${pkgs.gnutar}/bin/tar -xf "$TAR" -C "$(dirname "$BIN")" docker-scout
-              chmod +x "$BIN"
-              rm "$TAR"
-            fi
-                      
-            mkdir -p "$(dirname "$CONFIG_FILE")"
-            cat > "$CONFIG_FILE" <<EOF
-            {
-              "cliPluginsExtraDirs": [
-                "$(dirname "$BIN")"
-              ]
-            }
-            EOF
-            export DOCKER_CONFIG="$PWD/.docker"
-            exec ${pkgs.docker}/bin/docker "$@"
-          ''
-        );
-      };
+      apps.${system}.scout =
+        let
+          tag = "1.18.3";
+        in
+        {
+          type = "app";
+          program = toString (
+            pkgs.writeShellScript "docker-scout-ephemeral" ''
+              set -euo pipefail
+              PLUGIN_DIR="$PWD/.docker/scout"
+              CONFIG_FILE="$PWD/.docker/config.json"
+              mkdir -p "$PLUGIN_DIR"
+              TAR="$PWD/docker-scout-${tag}.tar.gz"
+              BIN="$PLUGIN_DIR/docker-scout"
+              if [ ! -x "$BIN" ]; then
+                URL="https://github.com/docker/scout-cli/releases/download/v${tag}/docker-scout_${tag}_linux_amd64.tar.gz"
+                echo $URL
+                ${pkgs.curl}/bin/curl -L "$URL" -o "$TAR"
+                mkdir -p "$(dirname "$BIN")"
+                ${pkgs.gnutar}/bin/tar -xf "$TAR" -C "$(dirname "$BIN")" docker-scout
+                chmod +x "$BIN"
+                rm "$TAR"
+              fi
+                        
+              mkdir -p "$(dirname "$CONFIG_FILE")"
+              cat > "$CONFIG_FILE" <<EOF
+              {
+                "cliPluginsExtraDirs": [
+                  "$(dirname "$BIN")"
+                ]
+              }
+              EOF
+              export DOCKER_CONFIG="$PWD/.docker"
+              exec ${pkgs.docker}/bin/docker "$@"
+            ''
+          );
+        };
     };
 }
 
