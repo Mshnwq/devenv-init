@@ -38,6 +38,7 @@
         nativeBuildInputs = [ pkgs.pkg-config ];
         buildInputs = [ pkgs.openssl ];
       };
+
     in
     {
       packages.${system} = {
@@ -92,6 +93,27 @@
               fi
             fi
             exec ${glimOld}/bin/glim --config "$config" "$@"
+          '';
+        };
+
+        sparta = pkgs.stdenv.mkDerivation {
+          pname = "spa_nix";
+          version = "git-8bfa2bf";
+          src = pkgs.fetchFromGitHub {
+            owner = "sparta";
+            repo = "sparta";
+            rev = "8bfa2bfb77207d1eded8f1309d224f0bb45329d1";
+            hash = "sha256-LJLMPQC5G1Vrpa129v03k8Gcai85qhmQHlAATQnQrpA=";
+          };
+          nativeBuildInputs = [ pkgs.cmake ];
+          buildInputs = [ pkgs.mpi ];
+          cmakeFlags = [
+            "-DCMAKE_INSTALL_PREFIX=${placeholder "out"}"
+            "-DSPARTA_MACHINE=nix"
+          ];
+          sourceRoot = "source";
+          preConfigure = ''
+            cd cmake
           '';
         };
 
